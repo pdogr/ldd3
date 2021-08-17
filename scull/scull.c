@@ -94,11 +94,15 @@ static struct file_operations scull_proc_fops = {
 #endif
 
 int scull_open(struct inode *inode, struct file *filp) {
- struct scull_dev *dev;
- dev = container_of(inode->i_cdev, scull_dev, cdev);
- filp->private_data = dev;
+ struct scull_dev *s_dev;
+ s_dev = container_of(inode->i_cdev, scull_dev, cdev);
+ filp->private_data = s_dev;
  if ((filp->f_flags & O_ACCMODE) == O_WRONLY) {
-  scull_trim(dev);
+  if(mutex_lock_interruptible(&s_dev->lock)){
+   return -ERESTARTSYS;
+  }
+  scull_trim(s_dev);
+  mutex_unlock(&s_dev->lock);
  }
  return 0;
 }
@@ -107,20 +111,21 @@ int scull_release(struct inode *inode, struct file *filp) { return 0; }
 scull_qset *scull_follow(scull_dev *s_dev, ssize_t qsetll_off) {
  scull_qset *cur = s_dev->qset;
  if (!cur) {
-  if (!(cur = kmalloc(sizeof(scull_qset), GFP_KERNEL))) {
+  if (!(s_dev->qset = cur = kmalloc(sizeof(scull_qset), GFP_KERNEL))) {
    return 0;
   }
   memset(cur, 0, sizeof(scull_qset));
  }
  while (qsetll_off--) {
   if (!cur->next) {
-   if (!(cur = kmalloc(sizeof(scull_qset), GFP_KERNEL))) {
+   if (!(cur->next = kmalloc(sizeof(scull_qset), GFP_KERNEL))) {
     return 0;
    }
    memset(cur->next, 0, sizeof(scull_qset));
   }
   cur = cur->next;
  }
+
  return cur;
 }
 ssize_t scull_read(struct file *filp, char __user *buff, size_t count,
@@ -128,13 +133,17 @@ ssize_t scull_read(struct file *filp, char __user *buff, size_t count,
  ssize_t ret = 0;
  scull_dev *s_dev = filp->private_data;
  scull_qset *cur = 0;
+ if (mutex_lock_interruptible(&s_dev->lock)) {
+  return -ERESTARTSYS;
+ }
  ssize_t quantum = s_dev->quantum, qset_size = s_dev->qset_size;
  ssize_t num_bytes = quantum * qset_size, qsetll_off = *offp / num_bytes,
          qset_tot = *offp % num_bytes, qset_off = qset_tot / quantum,
          byte_off = qset_tot % quantum;
- if (mutex_lock_interruptible(&s_dev->lock)) {
-  return -ERESTARTSYS;
- }
+ PDEBUG(
+     "offp: %lld count: %lu num_bytes: %ld qsetll_off: %ld qset_off: %ld "
+     "byte_off: %ld",
+     *offp, count, num_bytes, qsetll_off, qset_off, byte_off);
  if (*offp >= s_dev->size) {
   goto scull_read_end;
  }
@@ -163,15 +172,18 @@ ssize_t scull_write(struct file *filp, const char __user *buff, size_t count,
  ssize_t ret = -ENOMEM;
  scull_dev *s_dev = filp->private_data;
  scull_qset *cur = 0;
+ if (mutex_lock_interruptible(&s_dev->lock)) {
+  return -ERESTARTSYS;
+ }
  ssize_t quantum = s_dev->quantum, qset_size = s_dev->qset_size;
  ssize_t num_bytes = quantum * qset_size, qsetll_off = *offp / num_bytes,
          qset_tot = *offp % num_bytes, qset_off = qset_tot / quantum,
          byte_off = qset_tot % quantum;
- if (mutex_lock_interruptible(&s_dev->lock)) {
-  return -ERESTARTSYS;
- }
+ PDEBUG(
+     "offp: %lld count: %lu num_bytes: %ld qsetll_off: %ld qset_off: %ld "
+     "byte_off: %ld",
+     *offp, count, num_bytes, qsetll_off, qset_off, byte_off);
  cur = scull_follow(s_dev, qsetll_off);
-
  if (!cur) {
   goto scull_write_end;
  }
@@ -222,6 +234,7 @@ static void exit_module(void) {
  PDEBUG("exit module scull");
  unregister_chrdev_region(dev, SCULL_DEVS);
 }
+
 static int __init init(void) {
  int res = 0, i = 0;
  dev_t dev = 0;

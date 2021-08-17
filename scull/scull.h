@@ -12,15 +12,15 @@
 
 #define SCULL_MINOR 0
 #define SCULL_DEVS 4
-#define SCULL_QSET_SIZE 128  // qset is set of 128 QUANTA
-#define SCULL_QUANTUM 1024   // quantum is a 1024 byte memory area
+#define SCULL_QSET_SIZE 65536 // qset is set of 1024 QUANTA
+#define SCULL_QUANTUM 65536   // quantum is a 1024 byte memory area
 
 #undef PDEBUG
 #ifdef SCULL_DEBUG
 #ifdef __KERNEL__
 #define PDEBUG(fmt, args...)                                \
- printk(KERN_ALERT "scull: %s %d", __FUNCTION__, __LINE__); \
- printk(KERN_ALERT "scull: " fmt, ##args)
+ printk(KERN_DEBUG "scull: %s %d", __FUNCTION__, __LINE__); \
+ printk(KERN_DEBUG "scull: " fmt, ##args)
 #else
 #define PDEBUG(fmt, args...)                              \
  fprintf(stderr, "scull: %s %d", __FUNCTION__, __LINE__); \
