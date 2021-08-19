@@ -10,26 +10,11 @@
 #include <linux/seq_file.h>
 #include <linux/slab.h>
 #include <linux/version.h>
-
+#include "common.h"
 #define SCULL_MINOR 0
 #define SCULL_DEVS 4
 #define SCULL_QSET_SIZE 1024  // qset is set of 1024 QUANTA
 #define SCULL_QUANTUM 4096    // quantum is a 4096 byte memory area
-
-#undef PDEBUG
-#ifdef SCULL_DEBUG
-#ifdef __KERNEL__
-#define PDEBUG(fmt, args...)                                \
- printk(KERN_DEBUG "scull: %s %d", __FUNCTION__, __LINE__); \
- printk(KERN_DEBUG "scull: " fmt, ##args)
-#else
-#define PDEBUG(fmt, args...)                              \
- fprintf(stderr, "scull: %s %d", __FUNCTION__, __LINE__); \
- fprintf(stderr, fmt, ##args)
-#endif
-#else
-#define PDEBUG(fmt, args...)
-#endif
 
 #define SCULL_IOC_MAGIC 'p'
 // Read/Write wrt application write -> copy_from_user
