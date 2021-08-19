@@ -2,7 +2,7 @@
 MODULE_LICENSE("GPL");
 
 static int err = 0;
-struct scull_dev *devs;
+static struct scull_dev *devs;
 static int scull_major = 0, scull_minor = SCULL_MINOR;
 static ssize_t scull_qset_size = SCULL_QSET_SIZE, scull_quantum = SCULL_QUANTUM;
 
