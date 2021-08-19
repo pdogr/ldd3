@@ -153,9 +153,10 @@ ssize_t scull_read(struct file *filp, char __user *buff, size_t count,
   ssize_t num_bytes = quantum * qset_size, qsetll_off = *offp / num_bytes,
           qset_tot = *offp % num_bytes, qset_off = qset_tot / quantum,
           byte_off = qset_tot % quantum;
-  PDEBUG("offp: %lld count: %lu num_bytes: %ld qsetll_off: %ld qset_off: %ld "
-         "byte_off: %ld",
-         *offp, count, num_bytes, qsetll_off, qset_off, byte_off);
+  PDEBUG(
+      "offp: %lld count: %lu num_bytes: %ld qsetll_off: %ld qset_off: %ld "
+      "byte_off: %ld",
+      *offp, count, num_bytes, qsetll_off, qset_off, byte_off);
   if (*offp >= s_dev->size) {
     goto scull_read_end;
   }
@@ -191,9 +192,10 @@ ssize_t scull_write(struct file *filp, const char __user *buff, size_t count,
   ssize_t num_bytes = quantum * qset_size, qsetll_off = *offp / num_bytes,
           qset_tot = *offp % num_bytes, qset_off = qset_tot / quantum,
           byte_off = qset_tot % quantum;
-  PDEBUG("offp: %lld count: %lu num_bytes: %ld qsetll_off: %ld qset_off: %ld "
-         "byte_off: %ld",
-         *offp, count, num_bytes, qsetll_off, qset_off, byte_off);
+  PDEBUG(
+      "offp: %lld count: %lu num_bytes: %ld qsetll_off: %ld qset_off: %ld "
+      "byte_off: %ld",
+      *offp, count, num_bytes, qsetll_off, qset_off, byte_off);
   cur = scull_follow(s_dev, qsetll_off);
   if (!cur) {
     goto scull_write_end;
@@ -238,64 +240,64 @@ long scull_ioctl(struct file *filp, unsigned int cmd, unsigned long arg) {
     return -EFAULT;
   }
   switch (cmd) {
-  case SCULL_IOCRESET:
-    scull_qset_size = SCULL_QSET_SIZE;
-    scull_quantum = SCULL_QUANTUM;
-    break;
-  case SCULL_IOCSQUANTUM:
-    is_root();
-    ret = __get_user(scull_quantum, (ssize_t __user *)arg);
-    break;
-  case SCULL_IOCTQUANTUM:
-    is_root();
-    scull_quantum = arg;
-    break;
-  case SCULL_IOCGQUANTUM:
-    ret = __put_user(scull_quantum, (ssize_t __user *)arg);
-    break;
-  case SCULL_IOCQQUANTUM:
-    return scull_quantum;
-    break;
-  case SCULL_IOCXQUANTUM:
-    is_root();
-    tmp = scull_quantum;
-    ret = __get_user(scull_quantum, (ssize_t __user *)arg);
-    if (!ret) {
-      ret = __put_user(tmp, (ssize_t __user *)arg);
-    }
-    break;
-  case SCULL_IOCHQUANTUM:
-    is_root();
-    tmp = scull_quantum;
-    scull_quantum = arg;
-    return arg;
-  case SCULL_IOCSQSET:
-    is_root();
-    ret = __get_user(scull_qset_size, (ssize_t __user *)arg);
-    break;
-  case SCULL_IOCTQSET:
-    is_root();
-    scull_qset_size = arg;
-    break;
-  case SCULL_IOCGQSET:
-    ret = __put_user(scull_qset_size, (ssize_t __user *)arg);
-    break;
-  case SCULL_IOCQQSET:
-    return scull_qset_size;
-    break;
-  case SCULL_IOCXQSET:
-    is_root();
-    tmp = scull_qset_size;
-    ret = __get_user(scull_qset_size, (ssize_t __user *)arg);
-    if (!ret) {
-      ret = __put_user(tmp, (ssize_t __user *)arg);
-    }
-    break;
-  case SCULL_IOCHQSET:
-    is_root();
-    tmp = scull_qset_size;
-    scull_qset_size = arg;
-    return arg;
+    case SCULL_IOCRESET:
+      scull_qset_size = SCULL_QSET_SIZE;
+      scull_quantum = SCULL_QUANTUM;
+      break;
+    case SCULL_IOCSQUANTUM:
+      is_root();
+      ret = __get_user(scull_quantum, (ssize_t __user *)arg);
+      break;
+    case SCULL_IOCTQUANTUM:
+      is_root();
+      scull_quantum = arg;
+      break;
+    case SCULL_IOCGQUANTUM:
+      ret = __put_user(scull_quantum, (ssize_t __user *)arg);
+      break;
+    case SCULL_IOCQQUANTUM:
+      return scull_quantum;
+      break;
+    case SCULL_IOCXQUANTUM:
+      is_root();
+      tmp = scull_quantum;
+      ret = __get_user(scull_quantum, (ssize_t __user *)arg);
+      if (!ret) {
+        ret = __put_user(tmp, (ssize_t __user *)arg);
+      }
+      break;
+    case SCULL_IOCHQUANTUM:
+      is_root();
+      tmp = scull_quantum;
+      scull_quantum = arg;
+      return arg;
+    case SCULL_IOCSQSET:
+      is_root();
+      ret = __get_user(scull_qset_size, (ssize_t __user *)arg);
+      break;
+    case SCULL_IOCTQSET:
+      is_root();
+      scull_qset_size = arg;
+      break;
+    case SCULL_IOCGQSET:
+      ret = __put_user(scull_qset_size, (ssize_t __user *)arg);
+      break;
+    case SCULL_IOCQQSET:
+      return scull_qset_size;
+      break;
+    case SCULL_IOCXQSET:
+      is_root();
+      tmp = scull_qset_size;
+      ret = __get_user(scull_qset_size, (ssize_t __user *)arg);
+      if (!ret) {
+        ret = __put_user(tmp, (ssize_t __user *)arg);
+      }
+      break;
+    case SCULL_IOCHQSET:
+      is_root();
+      tmp = scull_qset_size;
+      scull_qset_size = arg;
+      return arg;
   }
   return 0;
 }

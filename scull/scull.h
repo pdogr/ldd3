@@ -1,15 +1,3 @@
-#include <linux/cdev.h>
-#include <linux/errno.h>
-#include <linux/fs.h>
-#include <linux/init.h>
-#include <linux/ioctl.h>
-#include <linux/kernel.h>
-#include <linux/module.h>
-#include <linux/moduleparam.h>
-#include <linux/proc_fs.h>
-#include <linux/seq_file.h>
-#include <linux/slab.h>
-#include <linux/version.h>
 #include "common.h"
 #define SCULL_MINOR 0
 #define SCULL_DEVS 4
@@ -34,19 +22,19 @@
 #define SCULL_IOCHQSET _IO(SCULL_IOC_MAGIC, 12)
 #define SCULL_IOC_MAXNR 12
 
-#define is_root()               \
- if (!capable(CAP_SYS_ADMIN)) { \
-  return -EPERM;                \
- }
+#define is_root()                \
+  if (!capable(CAP_SYS_ADMIN)) { \
+    return -EPERM;               \
+  }
 
 typedef struct scull_qset {
- void **data;
- struct scull_qset *next;
+  void **data;
+  struct scull_qset *next;
 } scull_qset;
 
 typedef struct scull_dev {
- struct scull_qset *qset;
- struct cdev cdev;
- struct mutex lock;
- ssize_t qset_size, size, quantum;
+  struct scull_qset *qset;
+  struct cdev cdev;
+  struct mutex lock;
+  ssize_t qset_size, size, quantum;
 } scull_dev;
