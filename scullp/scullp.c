@@ -28,9 +28,14 @@ static int scullp_open(struct inode *inode, struct file *filp) {
   mutex_unlock(&pipe->lock);
   return nonseekable_open(inode, filp);
 }
+static int scullp_fasync(int fd, struct file *filp, int mode) {
+  scull_pipe *pipe = filp->private_data;
+  return fasync_helper(fd, filp, mode, &pipe->async_queue);
+}
 static int scullp_release(struct inode *inode, struct file *filp) {
   scull_pipe *pipe = filp->private_data;
   mutex_lock(&pipe->lock);
+  scullp_fasync(-1, filp, 0);
   if (filp->f_mode & FMODE_READ) {
     --pipe->nreaders;
   }
@@ -41,6 +46,7 @@ static int scullp_release(struct inode *inode, struct file *filp) {
     kfree(pipe->buffer);
     pipe->buffer = 0;
   }
+
   mutex_unlock(&pipe->lock);
   return 0;
 }
@@ -125,7 +131,27 @@ static ssize_t scullp_write(struct file *filp, const char __user *buf,
   }
   mutex_unlock(&pipe->lock);
   wake_up_interruptible(&pipe->inq);
+  if (pipe->async_queue) {
+    kill_fasync(&pipe->async_queue, SIGIO, POLL_IN);
+  }
   return count;
+}
+static unsigned int scullp_poll(struct file *filp, poll_table *wait) {
+  scull_pipe *pipe = filp->private_data;
+  unsigned int m = 0;
+  if (mutex_lock_interruptible(&pipe->lock)) {
+    return -ERESTARTSYS;
+  }
+  poll_wait(filp, &pipe->inq, wait);
+  poll_wait(filp, &pipe->outq, wait);
+  if (pipe->r != pipe->w) {
+    m |= (POLLIN | POLLRDNORM);
+  }
+  if (scullp_freesize(pipe)) {
+    m |= (POLLOUT | POLLWRNORM);
+  }
+  mutex_unlock(&pipe->lock);
+  return m;
 }
 struct file_operations scullp_fops = {
     .owner = THIS_MODULE,
@@ -133,6 +159,8 @@ struct file_operations scullp_fops = {
     .read = scullp_read,
     .release = scullp_release,
     .write = scullp_write,
+    .poll = scullp_poll,
+    .fasync = scullp_fasync,
 
 };
 

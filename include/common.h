@@ -10,6 +10,7 @@
 #include <linux/seq_file.h>
 #include <linux/slab.h>
 #include <linux/version.h>
+#include<linux/poll.h>
 
 #undef PDEBUG
 #ifdef SCULL_DEBUG

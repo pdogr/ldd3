@@ -11,4 +11,5 @@ typedef struct scull_pipe {
   int nreaders, nwriters;
   struct mutex lock;
   struct cdev cdev;
+  struct fasync_struct *async_queue;
 } scull_pipe;
