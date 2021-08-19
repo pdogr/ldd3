@@ -37,4 +37,7 @@ typedef struct scull_dev {
   struct cdev cdev;
   struct mutex lock;
   ssize_t qset_size, size, quantum;
+  uid_t owner;
+  int count;
+  spinlock_t owner_lock;
 } scull_dev;

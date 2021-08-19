@@ -108,8 +108,23 @@ static struct file_operations scull_proc_fops = {
 
 int scull_open(struct inode *inode, struct file *filp) {
   struct scull_dev *s_dev;
+  uid_t *owner = 0;
   s_dev = container_of(inode->i_cdev, scull_dev, cdev);
   filp->private_data = s_dev;
+  spin_lock(&s_dev->owner_lock);
+  owner = &s_dev->owner;
+
+  if (s_dev->count && (*owner != current_uid().val) &&
+      (*owner != current_euid().val) && !(capable(CAP_DAC_OVERRIDE))) {
+    spin_unlock(&s_dev->owner_lock);
+    return -EBUSY;
+  }
+  if (!s_dev->count) {
+    *owner = current_uid().val;
+  }
+  s_dev->count++;
+  spin_unlock(&s_dev->owner_lock);
+
   if ((filp->f_flags & O_ACCMODE) == O_WRONLY) {
     if (mutex_lock_interruptible(&s_dev->lock)) {
       return -ERESTARTSYS;
@@ -120,7 +135,13 @@ int scull_open(struct inode *inode, struct file *filp) {
   return 0;
 }
 
-int scull_release(struct inode *inode, struct file *filp) { return 0; }
+int scull_release(struct inode *inode, struct file *filp) {
+  scull_dev *s_dev = filp->private_data;
+  spin_lock(&s_dev->owner_lock);
+  s_dev->count--;
+  spin_unlock(&s_dev->owner_lock);
+  return 0;
+}
 scull_qset *scull_follow(scull_dev *s_dev, ssize_t qsetll_off) {
   scull_qset *cur = s_dev->qset;
   if (!cur) {
@@ -347,7 +368,9 @@ static int __init init(void) {
     s_dev->qset_size = scull_qset_size;
     s_dev->quantum = scull_quantum;
     mutex_init(&s_dev->lock);
-
+    spin_lock_init(&s_dev->owner_lock);
+    s_dev->owner = 0;
+    s_dev->count = 0;
     dev = MKDEV(scull_major, scull_minor + i);
     cdev_init(&s_dev->cdev, &scull_fops);
     err = cdev_add(&s_dev->cdev, dev, 1);
@@ -356,6 +379,7 @@ static int __init init(void) {
     if (err) {
       printk(KERN_NOTICE "Error %d adding cdev %d", err, i);
     }
+
     proc_create("scull", 0, NULL, &scull_proc_fops);
   }
   PDEBUG("init success");
