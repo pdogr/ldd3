@@ -1,5 +1,5 @@
 
-SUBDIRS = scull scullp
+SUBDIRS = scull scullp scullc 
 
 subdirs:
 	for n in $(SUBDIRS); do $(MAKE) -C $$n || exit 1; done;
